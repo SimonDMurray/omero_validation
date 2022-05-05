@@ -64,69 +64,69 @@ else:
     print('Error: Invalid mode selected. Please select import or stitching mode', file=sys.stderr)
     sys.exit(1)
 
-#if args.mode == 'import':
-#  ## Checking file exists
-#  try:
-#    input_file = pd.read_csv(args.input, sep=args.separator)
-#  except FileNotFoundError:
-#    print('Error: File not found. Check path to file', file=sys.stderr)
-#    sys.exit(1)
-#  input_columns = list(input_file.columns)
-#  stripped_columns = []
-#  for column in input_columns:
-#    ## Checking all mandatory columns are named
-#    if 'Unnamed' in column:
-#      index = input_columns.index(column)
-#      print('Error: Column number ' + str(index) + ' does not have a column name', file=sys.stderr)
-#      sys.exit(1)
-#    ## Removing Special 
-#    stripped = column.strip()
-#    stripped_columns.append(stripped)
-#  expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_internal_group', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']
-#  for column in stripped_columns:
-#    if column not in expected_columns:
-#      print('Error: column "' + column + '" is not an expected column name', file=sys.stderr)
-#      sys.exit(1)
-#  input_file.columns = stripped_columns
-#  ## Checking image file exists
-#  image_file = str(input_file['location'][0]) + '/' + str(input_file['filename'][0])
-#  image_exists = os.path.exists(image_file)
-#  if image_exists is False:
-#    print('Error: Image file does not exist', file=sys.stderr)
-#    sys.exit(1)
-#  ## Checking if columns are empty
-#  for column in stripped_columns:
-#    is_empty = bool(input_file[column].isnull().values.all())
-#    if is_empty is True:
-#      print('Error: column ' + column + ' is empty', file=sys.stderr)
-#      sys.exit(1)
-#  ## Iterating through rows for multiple submissions
-#  for index, row in input_file.iterrows():
-#    ## Checking User in Group
-#    conn = BlitzGateway(args.user, args.password, host="omero-srv2", secure=True)
-#    conn.connect()
-#    session = conn.c.getSession()
-#    admin_service = session.getAdminService()
-#    groupId = admin_service.lookupGroup(str(input_file['OMERO_internal_group'][index])).getId()
-#    users = admin_service.containedExperimenters(groupId.val)
-#    user_in_group = False
-#    user_list = []
-#    for user in users:
-#      user_list.append(user.omeName.val)
-#    if str(input_file['OMERO_internal_users'][index]) not in user_list:
-#      print('Error: Omero user ' + str(input_file['OMERO_internal_users'][index]) + ' is not in omero group', file=sys.stderr)
-#      conn.close()
-#      sys.exit(1)
-#    ## Checking Project Exists
-#    projects_df = pd.DataFrame(columns=["id","groupName"])
-#    for group in admin_service.lookupGroups():
-#      projects_df = projects_df.append({'id': group.getId().val, 'groupName': group.getName().val}, ignore_index=True)
-#    project_names = list(projects_df['groupName'])
-#    if str(input_file['Project'][index]) not in project_names:
-#      print('Error: project ' + str(input_file['Project'][index]) + ' does not exist', file=sys.stderr)
-#      conn.close()
-#      sys.exit(1)
-#    conn.close()
+if args.mode == 'import':
+  ## Checking file exists
+  try:
+    input_file = pd.read_csv(args.input, sep=args.separator)
+  except FileNotFoundError:
+    print('Error: File not found. Check path to file', file=sys.stderr)
+    sys.exit(1)
+  input_columns = list(input_file.columns)
+  stripped_columns = []
+  for column in input_columns:
+    ## Checking all mandatory columns are named
+    if 'Unnamed' in column:
+      index = input_columns.index(column)
+      print('Error: Column number ' + str(index) + ' does not have a column name', file=sys.stderr)
+      sys.exit(1)
+    ## Removing Special 
+    stripped = column.strip()
+    stripped_columns.append(stripped)
+  expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_internal_group', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']
+  for column in stripped_columns:
+    if column not in expected_columns:
+      print('Error: column "' + column + '" is not an expected column name', file=sys.stderr)
+      sys.exit(1)
+  input_file.columns = stripped_columns
+  ## Iterating through rows for multiple submissions
+  for index, row in input_file.iterrows():
+    ## Checking image file exists
+    image_file = str(input_file['location'][index]) + '/' + str(input_file['filename'][index])
+    image_exists = os.path.exists(image_file)
+    if image_exists is False:
+      print('Error: Image file does not exist', file=sys.stderr)
+      sys.exit(1)
+  ## Checking if columns are empty
+  for column in mandatory_columns:
+    is_empty = input_file[column][index]
+    if is_empty is None:
+      print('Error: column ' + column + ' is empty', file=sys.stderr)
+      sys.exit(1)
+    ## Checking User in Group
+    conn = BlitzGateway(args.user, args.password, host="omero-srv2", secure=True)
+    conn.connect()
+    session = conn.c.getSession()
+    admin_service = session.getAdminService()
+    groupId = admin_service.lookupGroup(str(input_file['OMERO_internal_group'][index])).getId()
+    users = admin_service.containedExperimenters(groupId.val)
+    user_in_group = False
+    user_list = []
+    for user in users:
+      user_list.append(user.omeName.val)
+    if str(input_file['OMERO_internal_users'][index]) not in user_list:
+      print('Error: Omero user ' + str(input_file['OMERO_internal_users'][index]) + ' is not in omero group', file=sys.stderr)
+      conn.close()
+      sys.exit(1)
+    ## Checking Project Exists
+    projects_df = pd.DataFrame(columns=["id","groupName"])
+    for group in admin_service.lookupGroups():
+      projects_df = projects_df.append({'id': group.getId().val, 'groupName': group.getName().val}, ignore_index=True)
+    project_names = list(projects_df['groupName'])
+    if str(input_file['Project'][index]) not in project_names:
+      print('Error: project ' + str(input_file['Project'][index]) + ' does not exist', file=sys.stderr)
+      conn.close()
+      sys.exit(1)
+    conn.close()
 
 if args.mode == 'stitching':
   ## Checking file exists
@@ -193,6 +193,11 @@ if args.mode == 'stitching':
             sys.exit(1)
           slide_empty = False
           plate_empty = True
+      elif is_empty is not None:
+        if column == 'SlideID':
+          slide_empty = False
+        elif column == 'Automated_PlateID':
+          plate_empty = False
     ## Checking User in Group
     conn = BlitzGateway(args.user, args.password, host="omero-srv2", secure=True)
     conn.connect()
@@ -221,18 +226,34 @@ if args.mode == 'stitching':
     ## Check image file exists
     export = str(input_file['Export_location'][index])
     if 'Harmony' in export:
-      basepath = '/nfs/team283_imaging/'
-      if slide_empty is False:
-        image_exists = glob(basepath + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index]) 
-      if plate_empty is False:
-        image_exists = glob(basepath + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-#      #glob
-#    elif 'x' in export:
-#      basepath = '/nfs/team172_spatial_genomics/RNAscope/'
-#    elif 'y' in export:
-#      basepath = '/nfs/team172_spatial_genomics_imaging/'
-#    date = str(input_file['Date'][index])[0:10].strip()
-#    print(date)
-#    file_loc = basepath + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + date 
-#    ## Check the output file exists
-#    /nfs/assembled_images/datasets/RV_MFI/RVMFI (slideid_sampleid(partly)_targets_measurement_F1T1_stitchingZ)
+      basepath = '/nfs/team283_imaging/0HarmonyExports/'
+      image_exists = glob.glob(basepath + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])) 
+      if len(image_exists) == 0:
+        image_exists = glob.glob(basepath + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index]))
+        if len(image_exists) == 0:
+          print('Error: Cannot find image. Check Image exists.', file=sys.stderr)
+          sys.exit(1)
+      if len(image_exists) > 1:
+        print('Error: Multiple of the same image found with different names.', file=sys.stderr)
+        sys.exit(1)
+    else:
+      basepath = '/nfs/team172_spatial_genomics/RNAscope/'
+      image_exists = glob.glob(basepath + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])) 
+      if len(image_exists) == 0:
+        image_exists = glob.glob(basepath + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index]))
+        if len(image_exists) == 0:
+          basepath = '/nfs/team172_spatial_genomics_imaging/'
+          image_exists = glob.glob(basepath + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])) 
+          if len(image_exists) == 0:
+            image_exists = glob.glob(basepath + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index]))
+            if len(image_exists) == 0:
+              print('Error: Cannot find image. Check path is corrct', file=sys.stderr)
+              sys.exit(1)
+    ## Check if the output file exists
+    basepath='/nfs/assembled_images/datasets/'
+    image_exists = glob.glob(basepath + str(input_file['Project'][index]) + '/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '_' + str(input_file['Sample_1'][index])[0:7] + '*' + 'Meas' + str(input_file['Measurement'][index]) + '*' + str(input_file['Stitching_Z'][index]) + '.ome.tif')
+    if len(image_exists) == 0:
+      image_exists = glob.glob(basepath + str(input_file['Project'][index]) + '/' + str(input_file['Project'][index]) + '/' + str(input_file['Slide_barcode'][index]) + '_' + str(input_file['Sample_1'][index])[0:7] + '*' + 'Meas' + str(input_file['Measurement'][index]) + '*' + str(input_file['Stitching_Z'][index]) + '.ome.tif')
+    if len(image_exists) == 1:
+      print('Image already assembled. No need to run pipeline.', file=sys.stderr)
+      sys.exit(1)
