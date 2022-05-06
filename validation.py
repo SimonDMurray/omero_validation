@@ -43,12 +43,6 @@ def argument_testing(args):
   if args.password is None:
     print('Error: Omero password is not specified', file=sys.stderr)
     sys.exit(1)
-  if args.separator == '\t':
-    print('Input separator is set to tab')
-  elif args.separator == ' ':
-    print('Input separator is set to space')
-  else:
-    print('Input separator is set to ' + str(args.separator))
   if args.mode == 'import' or args.mode == 'stitching':
     pass
   else:
@@ -59,22 +53,15 @@ def reading_file(args):
   """
   Reading in file
   """
-  if args.mode == 'import':
-    try:
-      input_file = pd.read_csv(args.input, sep=args.separator)
-    except FileNotFoundError:
-      print('Error: File not found. Check path to file', file=sys.stderr)
-      sys.exit(1)
-  elif args.mode == 'stitching':
-    try:
-      workbook = openpyxl.load_workbook(args.input)
-    except FileNotFoundError:
-      print('Error: File not found. Check path to file', file=sys.stderr)
-      sys.exit(1)
-    worksheet = workbook['Sheet1']
-    worksheet_data = worksheet.values
-    worksheet_columns = next(worksheet_data)[0:]
-    input_file = pd.DataFrame(worksheet_data, columns=worksheet_columns)
+  try:
+    workbook = openpyxl.load_workbook(args.input)
+  except FileNotFoundError:
+    print('Error: File not found. Check path to file', file=sys.stderr)
+    sys.exit(1)
+  worksheet = workbook['Sheet1']
+  worksheet_data = worksheet.values
+  worksheet_columns = next(worksheet_data)[0:]
+  input_file = pd.DataFrame(worksheet_data, columns=worksheet_columns)
   return input_file
 
 def checking_columns_exist(args, stripped_columns):
@@ -98,6 +85,12 @@ def checking_columns_exist(args, stripped_columns):
   for column in stripped_columns:
     if column not in expected_columns:
       print('Error: column "' + column + '" is not an expected column name', file=sys.stderr)
+      print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 for guidance on column names', file=sys.stderr)
+      sys.exit(1)
+  for column in expected_columns:
+    if column not in stripped_columns:
+      print('Error: column "' + column + '" is not present', file=sys.stderr)
+      print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 for guidance on column names', file=sys.stderr)
       sys.exit(1)
   return expected_columns
 
@@ -105,7 +98,13 @@ def sanitising_header(args, input_file):
   """
   Ensuring there are no special characters in header
   and that all column names are named
+  Removes any blank columns or rows
   """
+  input_file = input_file.dropna(axis='index', how = 'all')
+  if args.mode == 'import':
+    input_file = input_file.iloc[:, :8]
+  if args.mode == 'stitching':
+    input_file = input_file.iloc[:, :67]
   input_columns = list(input_file.columns)
   stripped_columns = []
   for column in input_columns:
@@ -156,7 +155,7 @@ def checking_empty_columns(input_file, index, mandatory_columns):
       elif column == 'Automated_PlateID':
         plate_empty = False
 
-def user_in_group(input_file, index, admin_service):
+def user_in_group(input_file, index, conn, admin_service):
   """
   Checking the submitted internal omero user
   is in the omero group
@@ -168,11 +167,11 @@ def user_in_group(input_file, index, admin_service):
   for user in users:
     user_list.append(user.omeName.val)
   if str(input_file['OMERO_internal_users'][index]) not in user_list:
-    print('Error: Omero user ' + str(input_file['OMERO_internal_users'][index]) + ' is not in omero group', file=sys.stderr)
+    print('Error: Omero user ' + str(input_file['OMERO_internal_users'][index]) + ' is not in omero group ' + str(input_file['OMERO_internal_group'][index]), file=sys.stderr)
     conn.close()
     sys.exit(1)
 
-def project_exists(input_file, index, admin_service):
+def project_exists(input_file, index, conn, admin_service):
   """
   Checking Omero project exists
   """
@@ -200,42 +199,45 @@ def checking_image_file(args, input_file, index):
     path = str(input_file['location'][index]) + '/' + str(input_file['filename'][index])
     image_exists = glob_image(path)
     if len(image_exists) == 0:
-      print('Error: Cannot find image. Check Image exists.', file=sys.stderr)
+      print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
+      print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
       sys.exit(1)
     elif len(image_exists) > 1:
       print('Error: Multiple of the same image found with different names.', file=sys.stderr)
       sys.exit(1)
   if args.mode == 'Stitching':
-	  export = str(input_file['Export_location'][index])
-	  if 'Harmony' in export:
-	    path = '/nfs/team283_imaging/0HarmonyExports/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-	    image_exists = glob_image(path)
-	    if len(image_exists) == 0:
-	      path = '/nfs/team283_imaging/0HarmonyExports/' + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-	      image_exists = glob_image(path)
-	      if len(image_exists) == 0:
-	        print('Error: Cannot find image. Check Image exists.', file=sys.stderr)
-	        sys.exit(1)
-	    elif len(image_exists) > 1:
-	      print('Error: Multiple of the same image found with different names.', file=sys.stderr)
-	      sys.exit(1)
-	  else:
-	    path = '/nfs/team172_spatial_genomics/RNAscope/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-	    image_exists = glob_image(path)
-	    if len(image_exists) == 0:
-	      path = '/nfs/team172_spatial_genomics/RNAscope/' + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-	      image_exists = glob_image(path)
-	      if len(image_exists) == 0:
-	        path = '/nfs/team172_spatial_genomics_imaging/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-	        image_exists = glob_image(path)
-	        if len(image_exists) == 0:
-	          path = '/nfs/team172_spatial_genomics_imaging/' + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-	          if len(image_exists) == 0:
-	            print('Error: Cannot find image. Check path is corrct', file=sys.stderr)
-	            sys.exit(1)
-	    elif len(image_exists) > 1:
-	      print('Error: Multiple of the same image found with different names.', file=sys.stderr)
-	      sys.exit(1)
+    export = str(input_file['Export_location'][index])
+    if 'Harmony' in export:
+      path = '/nfs/team283_imaging/0HarmonyExports/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
+      image_exists = glob_image(path)
+      if len(image_exists) == 0:
+        path = '/nfs/team283_imaging/0HarmonyExports/' + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
+        image_exists = glob_image(path)
+        if len(image_exists) == 0:
+          print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
+          print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
+          sys.exit(1)
+      elif len(image_exists) > 1:
+        print('Error: Multiple of the same image found with different names.', file=sys.stderr)
+        sys.exit(1)
+    else:
+      path = '/nfs/team172_spatial_genomics/RNAscope/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
+      image_exists = glob_image(path)
+      if len(image_exists) == 0:
+        path = '/nfs/team172_spatial_genomics/RNAscope/' + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
+        image_exists = glob_image(path)
+        if len(image_exists) == 0:
+          path = '/nfs/team172_spatial_genomics_imaging/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
+          image_exists = glob_image(path)
+          if len(image_exists) == 0:
+            path = '/nfs/team172_spatial_genomics_imaging/' + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
+            if len(image_exists) == 0:
+              print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
+              print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
+              sys.exit(1)
+      elif len(image_exists) > 1:
+        print('Error: Multiple of the same image found with different names.', file=sys.stderr)
+        sys.exit(1)
 
 def check_assembled_images(input_file, index):
   """
@@ -257,7 +259,6 @@ def main():
   """
   my_parser = argparse.ArgumentParser()
   my_parser.add_argument("-i", "--input", default=None, help="the file to be validated")
-  my_parser.add_argument("-s", "--separator", default='\t', help="the character the file columns are separated by")
   my_parser.add_argument("-m", "--mode", default='import', help="type of validation needed (import or stitching)")
   my_parser.add_argument("-u", "--user", default=None, help="omero username to log in with")
   my_parser.add_argument("-p", "--password", default=None, help="omero password to log in with")
@@ -272,11 +273,12 @@ def main():
     conn.connect()
     session = conn.c.getSession()
     admin_service = session.getAdminService()
-    user_in_group(input_file, index, admin_service)
-    project_exists(input_file, index, admin_service)
+    user_in_group(input_file, index, conn, admin_service)
+    project_exists(input_file, index, conn, admin_service)
     conn.close()
     checking_image_file(args, input_file, index)
     if args.mode == 'stitching':
       check_assembled_images(input_file, index)
+  input_file.to_csv(paste(args.mode, '.tsv'), sep = '\t')
 
 main()
