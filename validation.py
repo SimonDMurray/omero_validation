@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 
+## Run as imaging-su in order to see all potential imaging locations (stitching)
+## Conda env: /nfs/cellgeni/software/miniconda3/envs/omero_validation/
+
 import os, sys, glob, warnings
 
 try:
@@ -205,7 +208,7 @@ def checking_image_file(args, input_file, index):
     elif len(image_exists) > 1:
       print('Error: Multiple of the same image found with different names.', file=sys.stderr)
       sys.exit(1)
-  if args.mode == 'Stitching':
+  if args.mode == 'stitching':
     export = str(input_file['Export_location'][index])
     if 'Harmony' in export:
       path = '/nfs/team283_imaging/0HarmonyExports/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
