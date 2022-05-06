@@ -160,14 +160,14 @@ def user_in_group(input_file, index, conn, admin_service):
   Checking the submitted internal omero user
   is in the omero group
   """
-  groupId = admin_service.lookupGroup(str(input_file['OMERO_internal_group'][index])).getId()
+  groupId = admin_service.lookupGroup(str(input_file['Project'][index])).getId()
   users = admin_service.containedExperimenters(groupId.val)
   user_in_group = False
   user_list = []
   for user in users:
     user_list.append(user.omeName.val)
   if str(input_file['OMERO_internal_users'][index]) not in user_list:
-    print('Error: Omero user ' + str(input_file['OMERO_internal_users'][index]) + ' is not in omero group ' + str(input_file['OMERO_internal_group'][index]), file=sys.stderr)
+    print('Error: Omero user ' + str(input_file['OMERO_internal_users'][index]) + ' is not in omero group ' + str(input_file['Project'][index]), file=sys.stderr)
     conn.close()
     sys.exit(1)
 
@@ -279,6 +279,7 @@ def main():
     checking_image_file(args, input_file, index)
     if args.mode == 'stitching':
       check_assembled_images(input_file, index)
-  input_file.to_csv(paste(args.mode, '.tsv'), sep = '\t')
+  output = str(args.mode) + '.tsv'
+  input_file.to_csv(output, sep = '\t', index = False)
 
 main()
