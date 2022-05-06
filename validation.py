@@ -120,7 +120,7 @@ def sanitising_header(args, input_file):
     mandatory_columns = expected_columns
   elif args.mode == 'stitching':
     mandatory_columns = ['Researcher', 'Project', 'SlideID', 'Automated_PlateID', 'Tissue_1', 'Sample_1', 'Channel1', 'Target1', 
-                        'Measurement', 'Mag_Bin_Overlap', 'Export_location', 'Stitching_Z', 'OMERO_internal_group', 'OMERO_internal_users']
+                        'Measurement', 'Mag_Bin_Overlap', 'Export_location', 'Stitching_Z', 'OMERO_internal_users']
   return input_file, mandatory_columns
 
 def checking_empty_columns(input_file, index, mandatory_columns):
