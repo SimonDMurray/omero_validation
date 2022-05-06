@@ -69,7 +69,7 @@ def checking_columns_exist(args, stripped_columns):
   Checking all columns are named as expected
   """
   if args.mode == 'import':
-    expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_internal_group', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']
+    expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']
   elif args.mode == 'stitching':
     expected_columns = ['Researcher', 'Project', 'SlideID', 'Automated_PlateID', 'SlideN', 'Slide_barcode', 'Species',
                       'Tissue_1', 'Sample_1', 'Age_1', 'Genotype_1', 'Background_1', 'Tissue_2', 'Sample_2', 'Age_2',
@@ -102,7 +102,7 @@ def sanitising_header(args, input_file):
   """
   input_file = input_file.dropna(axis='index', how = 'all')
   if args.mode == 'import':
-    input_file = input_file.iloc[:, :8]
+    input_file = input_file.iloc[:, :7]
   if args.mode == 'stitching':
     input_file = input_file.iloc[:, :67]
   input_columns = list(input_file.columns)
