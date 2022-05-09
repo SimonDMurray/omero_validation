@@ -2,6 +2,7 @@
 
 ## Run as imaging-su in order to see all potential imaging locations (stitching)
 ## Conda env: /nfs/cellgeni/software/miniconda3/envs/omero_validation/
+## conda activate omero_validation
 
 import os, sys, glob, warnings
 
@@ -209,35 +210,17 @@ def checking_image_file(args, input_file, index):
       print('Error: Multiple of the same image found with different names.', file=sys.stderr)
       sys.exit(1)
   if args.mode == 'stitching':
-    export = str(input_file['Export_location'][index])
-    if 'Harmony' in export:
-      path = '/nfs/team283_imaging/0HarmonyExports/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-      image_exists = glob_image(path)
+    path = str(input_file['Export_location'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*'
+    if "\ " in path:
+        print("Error: Directory name contains spaces. Please remove these using the `mv` command")
+        print("Example: mv directory\ with\ spaces/ directory_no_spaces") 
+    image_exists = glob_image(path)
+    if len(image_exists) == 0:
+      path = str(input_file['Export_location'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*'
       if len(image_exists) == 0:
-        path = '/nfs/team283_imaging/0HarmonyExports/' + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-        image_exists = glob_image(path)
-        if len(image_exists) == 0:
-          print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
-          print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
-          sys.exit(1)
-      elif len(image_exists) > 1:
-        print('Error: Multiple of the same image found with different names.', file=sys.stderr)
+        print('Error: Cannot find image. Use a FARM path as shown on the docs for "Export_location".', file=sys.stderr)
+        print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
         sys.exit(1)
-    else:
-      path = '/nfs/team172_spatial_genomics/RNAscope/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-      image_exists = glob_image(path)
-      if len(image_exists) == 0:
-        path = '/nfs/team172_spatial_genomics/RNAscope/' + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-        image_exists = glob_image(path)
-        if len(image_exists) == 0:
-          path = '/nfs/team172_spatial_genomics_imaging/' + str(input_file['Project'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-          image_exists = glob_image(path)
-          if len(image_exists) == 0:
-            path = '/nfs/team172_spatial_genomics_imaging/' + str(input_file['Project'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*' + str(input_file['Measurement'][index])
-            if len(image_exists) == 0:
-              print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
-              print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
-              sys.exit(1)
       elif len(image_exists) > 1:
         print('Error: Multiple of the same image found with different names.', file=sys.stderr)
         sys.exit(1)
