@@ -214,6 +214,7 @@ def checking_image_file(args, input_file, index):
     if "\ " in path:
         print("Error: Directory name contains spaces. Please remove these using the `mv` command")
         print("Example: mv directory\ with\ spaces/ directory_no_spaces") 
+        sys.exit(1)
     image_exists = glob_image(path)
     if len(image_exists) == 0:
       path = str(input_file['Export_location'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*'
