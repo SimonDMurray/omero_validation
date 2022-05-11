@@ -1,16 +1,6 @@
 #!/usr/bin/python3
 
-## Run as imaging-su in order to see all potential imaging locations (stitching)
-## Conda env: /nfs/cellgeni/software/miniconda3/envs/omero_validation/
-## conda activate omero_validation
-
-import os, sys, glob, warnings
-
-try:
-    import argparse
-except ModuleNotFoundError:
-    print('Error: Please install Python argparse module', file=sys.stderr)
-    sys.exit(1)
+import os, sys, glob, argparse, warnings
 
 try:
     import pandas as pd
@@ -33,7 +23,6 @@ except:
 
 warnings.filterwarnings("ignore")
 
-
 def argument_testing(args):
   """
   Checking arguments are valid
@@ -46,6 +35,9 @@ def argument_testing(args):
     sys.exit(1)
   if args.password is None:
     print('Error: Omero password is not specified', file=sys.stderr)
+    sys.exit(1)
+  if args.basepath is None:
+    print('Error: Basepath  not specified', file=sys.stderr)
     sys.exit(1)
   if args.mode == 'import' or args.mode == 'stitching':
     pass
@@ -204,22 +196,26 @@ def checking_image_file(args, input_file, index):
     image_exists = glob_image(path)
     if len(image_exists) == 0:
       print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
+      print('Image path used: ' + path)
       print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
       sys.exit(1)
     elif len(image_exists) > 1:
       print('Error: Multiple of the same image found with different names.', file=sys.stderr)
       sys.exit(1)
   if args.mode == 'stitching':
-    path = str(input_file['Export_location'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*'
-    if "\ " in path:
-        print("Error: Directory name contains spaces. Please remove these using the `mv` command")
-        print("Example: mv directory\ with\ spaces/ directory_no_spaces") 
-        sys.exit(1)
+    path = args.basepath + str(input_file['Export_location'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*'
+    path = path.replace("\\", "/")    
     image_exists = glob_image(path)
     if len(image_exists) == 0:
-      path = str(input_file['Export_location'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*'
+      path = args.basepath + str(input_file['Export_location'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*'
+      path = path.replace("\\", "/")
       if len(image_exists) == 0:
         print('Error: Cannot find image. Use a FARM path as shown on the docs for "Export_location".', file=sys.stderr)
+        if input_file['SlideID'][index] is not None:
+          path = args.basepath + str(input_file['Export_location'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*'
+          print("Image path used: " + path)
+        else:
+          print("Image path used: " + path)
         print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
         sys.exit(1)
       elif len(image_exists) > 1:
@@ -249,6 +245,7 @@ def main():
   my_parser.add_argument("-m", "--mode", default='import', help="type of validation needed (import or stitching)")
   my_parser.add_argument("-u", "--user", default=None, help="omero username to log in with")
   my_parser.add_argument("-p", "--password", default=None, help="omero password to log in with")
+  my_parser.add_argument("-b", "--basepath", default=None, help="basepath to search for image")
   args = my_parser.parse_args()
   argument_testing(args)
   input_file = reading_file(args)
