@@ -36,37 +36,37 @@ def argument_testing(args):
   if args.password is None:
     print('Error: Omero password is not specified', file=sys.stderr)
     sys.exit(1)
-  if args.basepath is None:
+  if args.stitching and args.basepath is None:
     print('Error: Basepath  not specified', file=sys.stderr)
-    sys.exit(1)
-  if args.mode == 'import' or args.mode == 'stitching':
-    pass
-  else:
-    print('Error: Invalid mode selected. Please select import or stitching mode', file=sys.stderr)
     sys.exit(1)
 
 def reading_file(args):
   """
   Reading in file
   """
-  try:
-    workbook = openpyxl.load_workbook(args.input)
-  except FileNotFoundError:
-    print('Error: File not found. Check path to file', file=sys.stderr)
-    sys.exit(1)
-  worksheet = workbook['Sheet1']
-  worksheet_data = worksheet.values
-  worksheet_columns = next(worksheet_data)[0:]
-  input_file = pd.DataFrame(worksheet_data, columns=worksheet_columns)
+  if args.tsv:
+    try:
+      input_file = pd.read_csv(args.input, sep="\t")
+    except FileNotFoundError:
+      print('Error: File not found. Check path to file', file=sys.stderr)
+      sys.exit(1)
+  else:
+    try:
+      workbook = openpyxl.load_workbook(args.input)
+    except FileNotFoundError:
+      print('Error: File not found. Check path to file', file=sys.stderr)
+      sys.exit(1)
+    worksheet = workbook['Sheet1']
+    worksheet_data = worksheet.values
+    worksheet_columns = next(worksheet_data)[0:]
+    input_file = pd.DataFrame(worksheet_data, columns=worksheet_columns)
   return input_file
 
 def checking_columns_exist(args, stripped_columns):
   """
   Checking all columns are named as expected
   """
-  if args.mode == 'import':
-    expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']
-  elif args.mode == 'stitching':
+  if args.stitching:
     expected_columns = ['Researcher', 'Project', 'SlideID', 'Automated_PlateID', 'SlideN', 'Slide_barcode', 'Species',
                       'Tissue_1', 'Sample_1', 'Age_1', 'Genotype_1', 'Background_1', 'Tissue_2', 'Sample_2', 'Age_2',
                       'Genotype_2', 'Background_2', 'Tissue_3', 'Sample_3', 'Age_3', 'Genotype_3', 'Background_3',
@@ -78,6 +78,8 @@ def checking_columns_exist(args, stripped_columns):
                       'Pipeline', 'Microscope', 'Stitching_Z', 'Stitching_ReferenceChannel', 'Registration_ReferenceCycle',
                       'Registration_ReferenceChannel', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_group',
                       'OMERO_internal_users']
+  else:
+    expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']  
   for column in stripped_columns:
     if column not in expected_columns:
       print('Error: column "' + column + '" is not an expected column name', file=sys.stderr)
@@ -97,10 +99,10 @@ def sanitising_header(args, input_file):
   Removes any blank columns or rows
   """
   input_file = input_file.dropna(axis='index', how = 'all')
-  if args.mode == 'import':
-    input_file = input_file.iloc[:, :7]
-  if args.mode == 'stitching':
+  if args.stitching:
     input_file = input_file.iloc[:, :67]
+  else:
+    input_file = input_file.iloc[:, :7]
   input_columns = list(input_file.columns)
   stripped_columns = []
   for column in input_columns:
@@ -112,11 +114,11 @@ def sanitising_header(args, input_file):
     stripped_columns.append(stripped)
   expected_columns = checking_columns_exist(args, stripped_columns)
   input_file.columns = stripped_columns
-  if args.mode == 'import':
-    mandatory_columns = expected_columns
-  elif args.mode == 'stitching':
+  if args.stitching:
     mandatory_columns = ['Researcher', 'Project', 'SlideID', 'Automated_PlateID', 'Tissue_1', 'Sample_1', 'Channel1', 'Target1', 
                         'Measurement', 'Mag_Bin_Overlap', 'Export_location', 'Stitching_Z', 'OMERO_internal_users']
+  else:
+    mandatory_columns = expected_columns
   return input_file, mandatory_columns
 
 def checking_empty_columns(input_file, index, mandatory_columns):
@@ -191,18 +193,7 @@ def checking_image_file(args, input_file, index):
   """
   Checking input image file exists
   """
-  if args.mode == 'import':
-    path = str(input_file['location'][index]) + '/' + str(input_file['filename'][index])
-    image_exists = glob_image(path)
-    if len(image_exists) == 0:
-      print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
-      print('Image path used: ' + path)
-      print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
-      sys.exit(1)
-    elif len(image_exists) > 1:
-      print('Error: Multiple of the same image found with different names.', file=sys.stderr)
-      sys.exit(1)
-  if args.mode == 'stitching':
+  if args.stitching:
     path = args.basepath + str(input_file['Export_location'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*'
     path = path.replace("\\", "/")    
     image_exists = glob_image(path)
@@ -221,6 +212,17 @@ def checking_image_file(args, input_file, index):
       elif len(image_exists) > 1:
         print('Error: Multiple of the same image found with different names.', file=sys.stderr)
         sys.exit(1)
+  else:
+    path = str(input_file['location'][index]) + '/' + str(input_file['filename'][index])
+    image_exists = glob_image(path)
+    if len(image_exists) == 0:
+      print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
+      print('Image path used: ' + path)
+      print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
+      sys.exit(1)
+    elif len(image_exists) > 1:
+      print('Error: Multiple of the same image found with different names.', file=sys.stderr)
+      sys.exit(1)
 
 def check_assembled_images(input_file, index):
   """
@@ -242,10 +244,11 @@ def main():
   """
   my_parser = argparse.ArgumentParser()
   my_parser.add_argument("-i", "--input", default=None, help="the file to be validated")
-  my_parser.add_argument("-m", "--mode", default='import', help="type of validation needed (import or stitching)")
   my_parser.add_argument("-u", "--user", default=None, help="omero username to log in with")
   my_parser.add_argument("-p", "--password", default=None, help="omero password to log in with")
-  my_parser.add_argument("-b", "--basepath", default=None, help="basepath to search for image")
+  my_parser.add_argument("-b", "--basepath", default=None, help="basepath to search for image (needed for stitching mode)")
+  my_parser.add_argument("-stitching", action="store_true", default=False, help="sets mode to stitching (default is import)")
+  my_parser.add_argument("-tsv", action="store_true", default=False, help="input file will be .tsv rather than .xlsx")
   args = my_parser.parse_args()
   argument_testing(args)
   input_file = reading_file(args)
@@ -261,7 +264,7 @@ def main():
     project_exists(input_file, index, conn, admin_service)
     conn.close()
     checking_image_file(args, input_file, index)
-    if args.mode == 'stitching':
+    if args.stitching:
       check_assembled_images(input_file, index)
   output = str(args.mode) + '.tsv'
   input_file.to_csv(output, sep = '\t', index = False)
