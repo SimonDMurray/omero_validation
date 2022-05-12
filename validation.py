@@ -266,7 +266,6 @@ def main():
     checking_image_file(args, input_file, index)
     if args.stitching:
       check_assembled_images(input_file, index)
-  output = str(args.mode) + '.tsv'
-  input_file.to_csv(output, sep = '\t', index = False)
+  input_file.to_csv("output.tsv", sep = '\t', index = False)
 
 main()
