@@ -36,7 +36,7 @@ def argument_testing(args):
   if args.password is None:
     print('Error: Omero password is not specified', file=sys.stderr)
     sys.exit(1)
-  if args.stitching and args.basepath is None:
+  if args.basepath is None:
     print('Error: Basepath  not specified', file=sys.stderr)
     sys.exit(1)
 
@@ -190,39 +190,35 @@ def glob_image(path):
   return image_exists
 
 def checking_image_file(args, input_file, index):
-  """
-  Checking input image file exists
-  """
-  if args.stitching:
-    path = args.basepath + str(input_file['Export_location'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*'
-    path = path.replace("\\", "/")    
+    """
+    Checking input image file exists
+    """
+    if args.stitching:
+        input_file['Export_location'][index] = args.basepath + str(input_file['Export_location'][index].replace("\\", "/"))
+        path = input_file['Export_location'][index] + '/' + str(input_file['SlideID'][index]) + '__' + '*'
+    else:
+        input_file['location'][index] = args.basepath + str(input_file['location'][index].replace("\\", "/"))
+        path = input_file['location'][index] + '/' + str(input_file['filename'][index])
     image_exists = glob_image(path)
-    if len(image_exists) == 0:
-      path = args.basepath + str(input_file['Export_location'][index]) + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*'
-      path = path.replace("\\", "/")
-      if len(image_exists) == 0:
-        print('Error: Cannot find image. Use a FARM path as shown on the docs for "Export_location".', file=sys.stderr)
-        if input_file['SlideID'][index] is not None:
-          path = args.basepath + str(input_file['Export_location'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*'
-          print("Image path used: " + path)
-        else:
-          print("Image path used: " + path)
+    if len(image_exists) == 0 and args.stitching:
+        path = input_file['Export_location'][index] + '/' + str(input_file['Automated_PlateID'][index]) + '__' + '*'
+        if len(image_exists) == 0:
+            print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
+            if input_file['SlideID'][index] is not None:
+                path = args.basepath + str(input_file['Export_location'][index]) + '/' + str(input_file['SlideID'][index]) + '__' + '*'
+                print("Image path used: " + path)
+            else:
+                print("Image path used: " + path)
+            print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
+            sys.exit(1)
+    elif len(image_exists) == 0:
+        print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
+        print("Image path used: " + path)
         print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
         sys.exit(1)
-      elif len(image_exists) > 1:
+    elif len(image_exists) > 1:
         print('Error: Multiple of the same image found with different names.', file=sys.stderr)
         sys.exit(1)
-  else:
-    path = str(input_file['location'][index]) + '/' + str(input_file['filename'][index])
-    image_exists = glob_image(path)
-    if len(image_exists) == 0:
-      print('Error: Cannot find image. Use a FARM path as shown on the docs.', file=sys.stderr)
-      print('Image path used: ' + path)
-      print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 an example', file=sys.stderr)
-      sys.exit(1)
-    elif len(image_exists) > 1:
-      print('Error: Multiple of the same image found with different names.', file=sys.stderr)
-      sys.exit(1)
 
 def check_assembled_images(input_file, index):
   """
@@ -260,8 +256,8 @@ def main():
     conn.connect()
     session = conn.c.getSession()
     admin_service = session.getAdminService()
-    user_in_group(input_file, index, conn, admin_service)
     project_exists(input_file, index, conn, admin_service)
+    user_in_group(input_file, index, conn, admin_service)
     conn.close()
     checking_image_file(args, input_file, index)
     if args.stitching:
