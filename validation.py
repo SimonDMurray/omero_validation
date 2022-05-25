@@ -79,18 +79,35 @@ def checking_columns_exist(args, stripped_columns):
                       'Registration_ReferenceChannel', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_group',
                       'OMERO_internal_users']
   else:
-    expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']  
-  for column in stripped_columns:
-    if column not in expected_columns:
-      print('Error: column "' + column + '" is not an expected column name', file=sys.stderr)
-      print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 for guidance on column names', file=sys.stderr)
-      sys.exit(1)
+    expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users', 'OMERO_internal_group']
   for column in expected_columns:
     if column not in stripped_columns:
       print('Error: column "' + column + '" is not present', file=sys.stderr)
       print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 for guidance on column names', file=sys.stderr)
       sys.exit(1)
   return expected_columns
+
+def checking_duplicate_columns(expected_columns, given_columns):
+    """
+    Ensuring that none of the required column names are duplicated in the import file
+    """
+    
+    #1. Get duplicate columns
+    seen = set()
+    duplicates = []
+    for column in given_columns:
+        if column.split(".")[0] not in seen:
+            seen.add(column.split(".")[0])
+        else:
+            duplicates.append(column.split(".")[0])
+            
+    #2. Check if duplicates are required columns        
+    if duplicates:
+        required_and_duplicated = [column for column in duplicates if column in expected_columns]
+        if required_and_duplicated:
+            print('Error: duplicated column name/s: "' + ', '.join(required_and_duplicated) + '"', file=sys.stderr)
+            print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 for guidance on column names', file=sys.stderr)
+            sys.exit(1)
 
 def sanitising_header(args, input_file):
   """
@@ -99,11 +116,8 @@ def sanitising_header(args, input_file):
   Removes any blank columns or rows
   """
   input_file = input_file.dropna(axis='index', how = 'all')
-  if args.stitching:
-    input_file = input_file.iloc[:, :67]
-  else:
-    input_file = input_file.iloc[:, :7]
   input_columns = list(input_file.columns)
+  print(input_columns)
   stripped_columns = []
   for column in input_columns:
     if 'Unnamed' in column:
@@ -113,6 +127,7 @@ def sanitising_header(args, input_file):
     stripped = column.strip()
     stripped_columns.append(stripped)
   expected_columns = checking_columns_exist(args, stripped_columns)
+  checking_duplicate_columns(expected_columns, stripped_columns)
   input_file.columns = stripped_columns
   if args.stitching:
     mandatory_columns = ['Researcher', 'Project', 'SlideID', 'Automated_PlateID', 'Tissue_1', 'Sample_1', 'Channel1', 'Target1', 
@@ -245,6 +260,7 @@ def main():
   my_parser.add_argument("-b", "--basepath", default=None, help="basepath to search for image (needed for stitching mode)")
   my_parser.add_argument("-stitching", action="store_true", default=False, help="sets mode to stitching (default is import)")
   my_parser.add_argument("-tsv", action="store_true", default=False, help="input file will be .tsv rather than .xlsx")
+  my_parser.add_argument("-f", "--fff", help="a dummy argument to fool ipython", default="1")
   args = my_parser.parse_args()
   argument_testing(args)
   input_file = reading_file(args)
