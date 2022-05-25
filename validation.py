@@ -116,6 +116,7 @@ def sanitising_header(args, input_file):
   Removes any blank columns or rows
   """
   input_file = input_file.dropna(axis='index', how = 'all')
+  input_file = input_file.dropna(axis='columns', how = 'all')
   input_columns = list(input_file.columns)
   stripped_columns = []
   for column in input_columns:
