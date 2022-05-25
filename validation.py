@@ -79,7 +79,7 @@ def checking_columns_exist(args, stripped_columns):
                       'Registration_ReferenceChannel', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_group',
                       'OMERO_internal_users']
   else:
-    expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users', 'OMERO_internal_group']
+    expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']
   for column in expected_columns:
     if column not in stripped_columns:
       print('Error: column "' + column + '" is not present', file=sys.stderr)
@@ -117,7 +117,6 @@ def sanitising_header(args, input_file):
   """
   input_file = input_file.dropna(axis='index', how = 'all')
   input_columns = list(input_file.columns)
-  print(input_columns)
   stripped_columns = []
   for column in input_columns:
     if 'Unnamed' in column:
@@ -260,7 +259,6 @@ def main():
   my_parser.add_argument("-b", "--basepath", default=None, help="basepath to search for image (needed for stitching mode)")
   my_parser.add_argument("-stitching", action="store_true", default=False, help="sets mode to stitching (default is import)")
   my_parser.add_argument("-tsv", action="store_true", default=False, help="input file will be .tsv rather than .xlsx")
-  my_parser.add_argument("-f", "--fff", help="a dummy argument to fool ipython", default="1")
   args = my_parser.parse_args()
   argument_testing(args)
   input_file = reading_file(args)
