@@ -68,20 +68,23 @@ def checking_columns_exist(args, stripped_columns):
   """
   if args.stitching:
     expected_columns = ['Researcher', 'Project', 'SlideID', 'Automated_PlateID', 'SlideN', 'Slide_barcode', 'Species',
-                      'Tissue_1', 'Sample_1', 'Age_1', 'Genotype_1', 'Background_1', 'Tissue_2', 'Sample_2', 'Age_2',
-                      'Genotype_2', 'Background_2', 'Tissue_3', 'Sample_3', 'Age_3', 'Genotype_3', 'Background_3',
-                      'Tissue_4', 'Sample_4', 'Age_4', 'Genotype_4', 'Background_4', 'Technology', 'Image_cycle',
-                      'Channel1', 'Target1', 'Channel2', 'Target2', 'Channel3', 'Target3', 'Channel4', 'Target4',
-                      'Channel5', 'Target5', 'Channel6', 'Target6', 'Channel7', 'Target7', 'Post-stain', 'Date',
-                      'Measurement', 'Low_mag_reference', 'Mag_Bin_Overlap', 'Sections', 'SectionN', 'z-planes',
-                      'Notes_1', 'Notes_2', 'Export_location', 'Archive_location', 'Harmony_copy_deleted', 'Team_dir',
-                      'Pipeline', 'Microscope', 'Stitching_Z', 'Stitching_ReferenceChannel', 'Registration_ReferenceCycle',
-                      'Registration_ReferenceChannel', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_group',
-                      'OMERO_internal_users']
+                      'Tissue_1', 'Sample_1', 'Age_1', 'Background_1', 'Technology', 'Image_cycle','Channel1', 'Target1', 
+                      'Date', 'Measurement', 'Low_mag_reference', 'Mag_Bin_Overlap', 'Sections', 'SectionN', 'z-planes',
+                      'Notes_1', 'Export_location', 'Stitching_Z', 'OMERO_internal_users']
   else:
     expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']
+  print(stripped_columns)
+  print(expected_columns)
   for column in expected_columns:
-    if column not in stripped_columns:
+    if column not in stripped_columns and column != "Automated_PlateID" and column != "SlideID": 
+      print('Error: column "' + column + '" is not present', file=sys.stderr)
+      print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 for guidance on column names', file=sys.stderr)
+      sys.exit(1)
+    elif column not in stripped_columns and column == 'Automated_PlateID' and 'SlideID' not in stripped_columns:
+      print('Error: column "' + column + '" is not present', file=sys.stderr)
+      print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 for guidance on column names', file=sys.stderr)
+      sys.exit(1)
+    elif column not in stripped_columns and column == 'SlideID' and 'Automated_PlateID' not in stripped_columns:
       print('Error: column "' + column + '" is not present', file=sys.stderr)
       print('Please visit https://cellgeni.readthedocs.io/en/latest/imaging.html#id1 for guidance on column names', file=sys.stderr)
       sys.exit(1)
