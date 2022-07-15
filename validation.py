@@ -67,10 +67,10 @@ def checking_columns_exist(args, stripped_columns):
   Checking all columns are named as expected
   """
   if args.stitching:
-    expected_columns = ['Researcher', 'Project', 'SlideID', 'Automated_PlateID', 'SlideN', 'Slide_barcode', 'Species',
-                      'Tissue_1', 'Sample_1', 'Age_1', 'Background_1', 'Technology', 'Image_cycle','Channel1', 'Target1', 
-                      'Date', 'Measurement', 'Low_mag_reference', 'Mag_Bin_Overlap', 'Sections', 'SectionN', 'z-planes',
-                      'Notes_1', 'Export_location', 'Stitching_Z', 'OMERO_internal_users']
+    expected_columns = ['Researcher', 'Project', 'SlideID', 'Automated_PlateID', 'SlideN', 'Slide_barcode',
+                      'Tissue_1', 'Sample_1', 'Image_cycle','Channel1', 'Target1', 'Measurement', 
+                      'Low_mag_reference', 'Mag_Bin_Overlap', 'Sections', 'SectionN', 'z-planes',
+                      'Export_location', 'OMERO_internal_users']
   else:
     expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']
   print(stripped_columns)
