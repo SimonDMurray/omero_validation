@@ -67,14 +67,12 @@ def checking_columns_exist(args, stripped_columns):
   Checking all columns are named as expected
   """
   if args.stitching:
-    expected_columns = ['Researcher', 'Project', 'SlideID', 'Automated_PlateID', 'SlideN', 'Slide_barcode',
+    expected_columns = ['Project', 'SlideID', 'Automated_PlateID', 'SlideN', 'Slide_barcode',
                       'Tissue_1', 'Sample_1', 'Image_cycle','Channel1', 'Target1', 'Measurement', 
                       'Low_mag_reference', 'Mag_Bin_Overlap', 'Sections', 'SectionN', 'z-planes',
-                      'Export_location', 'OMERO_internal_users']
+                      'Export_location']
   else:
     expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']
-  print(stripped_columns)
-  print(expected_columns)
   for column in expected_columns:
     if column not in stripped_columns and column != "Automated_PlateID" and column != "SlideID": 
       print('Error: column "' + column + '" is not present', file=sys.stderr)
