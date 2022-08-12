@@ -72,7 +72,7 @@ def checking_columns_exist(args, stripped_columns):
                       'Low_mag_reference', 'Mag_Bin_Overlap', 'Sections', 'SectionN', 'z-planes',
                       'Export_location']
   else:
-    expected_columns = ['filename', 'location', 'OMERO_SERVER', 'Project', 'OMERO_project', 'OMERO_DATASET', 'OMERO_internal_users']
+    expected_columns = ['filename', 'location', 'omero_group', 'omero_project', 'omero_dataset', 'omero_username']
   for column in expected_columns:
     if column not in stripped_columns and column != "Automated_PlateID" and column != "SlideID": 
       print('Error: column "' + column + '" is not present', file=sys.stderr)
@@ -174,16 +174,26 @@ def user_in_group(input_file, index, conn, admin_service):
   Checking the submitted internal omero user
   is in the omero group
   """
-  groupId = admin_service.lookupGroup(str(input_file['Project'][index])).getId()
+  if args.stitching:
+    groupId = admin_service.lookupGroup(str(input_file['Project'][index])).getId()
+  else:
+    groupId = admin_service.lookupGroup(str(input_file['omero_group'][index])).getId()
   users = admin_service.containedExperimenters(groupId.val)
   user_in_group = False
   user_list = []
   for user in users:
     user_list.append(user.omeName.val)
-  if str(input_file['OMERO_internal_users'][index]) not in user_list:
-    print('Error: Omero user ' + str(input_file['OMERO_internal_users'][index]) + ' is not in omero group ' + str(input_file['Project'][index]), file=sys.stderr)
-    conn.close()
-    sys.exit(1)
+  if args.stitching:
+    if str(input_file['OMERO_internal_users'][index]) not in user_list:
+      print('Error: Omero user ' + str(input_file['OMERO_internal_users'][index]) + ' is not in omero group ' + str(input_file['Project'][index]), file=sys.stderr)
+      conn.close()
+      sys.exit(1)
+  else:
+    if str(input_file['omero_username'][index]) not in user_list:
+      print('Error: Omero user ' + str(input_file['omero_username'][index]) + ' is not in omero group ' + str(input_file['omero_group'][index]), file=sys
+      conn.close()
+      sys.exit(1)
+    
 
 def project_exists(input_file, index, conn, admin_service):
   """
@@ -193,10 +203,16 @@ def project_exists(input_file, index, conn, admin_service):
   for group in admin_service.lookupGroups():
     projects_df = projects_df.append({'id': group.getId().val, 'groupName': group.getName().val}, ignore_index=True)
   project_names = list(projects_df['groupName'])
-  if str(input_file['Project'][index]) not in project_names:
-    print('Error: project ' + str(input_file['Project'][index]) + ' does not exist', file=sys.stderr)
-    conn.close()
-    sys.exit(1)
+  if args.stitching:
+    if str(input_file['Project'][index]) not in project_names:
+      print('Error: project ' + str(input_file['Project'][index]) + ' does not exist', file=sys.stderr)
+      conn.close()
+      sys.exit(1)
+  else:
+    if str(input_file['omero_group'][index]) not in project_names:
+      print('Error: project ' + str(input_file['omero_group'][index]) + ' does not exist', file=sys.stderr)
+      conn.close()
+      sys.exit(1)
 
 def glob_image(path):
   """
@@ -268,7 +284,7 @@ def main():
   ## Iterating through rows for multiple submissions
   for index, row in input_file.iterrows():
     checking_empty_columns(input_file, index, mandatory_columns)
-    conn = BlitzGateway(args.user, args.password, host="omero-srv2", secure=True)
+    conn = BlitzGateway(args.user, args.password, host="wsi-omero-prod-01.internal.sanger.ac.uk", secure=True)
     conn.connect()
     session = conn.c.getSession()
     admin_service = session.getAdminService()
