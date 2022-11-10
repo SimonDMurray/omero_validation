@@ -169,7 +169,7 @@ def checking_empty_columns(input_file, index, mandatory_columns):
       elif column == 'Automated_PlateID':
         plate_empty = False
 
-def user_in_group(input_file, index, conn, admin_service):
+def user_in_group(args, input_file, index, conn, admin_service):
   """
   Checking the submitted internal omero user
   is in the omero group
@@ -190,12 +190,12 @@ def user_in_group(input_file, index, conn, admin_service):
       sys.exit(1)
   else:
     if str(input_file['omero_username'][index]) not in user_list:
-      print('Error: Omero user ' + str(input_file['omero_username'][index]) + ' is not in omero group ' + str(input_file['omero_group'][index]), file=sys)
+      print('Error: Omero user ' + str(input_file['omero_username'][index]) + ' is not in omero group ' + str(input_file['omero_group'][index]), file=sys.stderr)
       conn.close()
       sys.exit(1)
     
 
-def project_exists(input_file, index, conn, admin_service):
+def project_exists(args, input_file, index, conn, admin_service):
   """
   Checking Omero project exists
   """
@@ -288,8 +288,8 @@ def main():
     conn.connect()
     session = conn.c.getSession()
     admin_service = session.getAdminService()
-    project_exists(input_file, index, conn, admin_service)
-    user_in_group(input_file, index, conn, admin_service)
+    project_exists(args, input_file, index, conn, admin_service)
+    user_in_group(args, input_file, index, conn, admin_service)
     conn.close()
     checking_image_file(args, input_file, index)
     if args.stitching:
