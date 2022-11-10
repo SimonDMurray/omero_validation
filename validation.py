@@ -190,7 +190,7 @@ def user_in_group(input_file, index, conn, admin_service):
       sys.exit(1)
   else:
     if str(input_file['omero_username'][index]) not in user_list:
-      print('Error: Omero user ' + str(input_file['omero_username'][index]) + ' is not in omero group ' + str(input_file['omero_group'][index]), file=sys
+      print('Error: Omero user ' + str(input_file['omero_username'][index]) + ' is not in omero group ' + str(input_file['omero_group'][index]), file=sys)
       conn.close()
       sys.exit(1)
     
